@@ -1,26 +1,16 @@
 #pragma warning(disable : 4996)
 
+using namespace std;
+
 #include <iostream>
 #include <string>
 #include <assert.h>
 #include <vector>
-
-using namespace std;
-
-// GLEW
-//#define GLEW_STATIC //-- se habilitar, não precisa da dll
 #include <GL/glew.h>
-
-// GLFW
 #include <GLFW/glfw3.h>
-
-// GLM
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
-// Nossa classezinha que lê o arquivo de shader e o compila na OpenGL
-// Exemplo retirado de https://learnopengl.com/#!Getting-started/Shaders
 #include "Shader.h"
 
 // Function prototypes
@@ -31,19 +21,14 @@ bool loadOBJ(const char * path, std::vector<glm::vec3>& out_vertices, std::vecto
 // Window dimensions
 const GLuint WIDTH = 800, HEIGHT = 600;
 
-//Camera variables
+// Camera variables
 glm::vec3 cameraPos = glm::vec3(0.0f, 3.0f, 10.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
-GLfloat objectY = 0.0f;
-GLfloat objectX = 0.0f;
-GLfloat objectZ = 0.0f;
-
-GLfloat rotateX = 0.0f;
-GLfloat rotateY = 0.0f;
-GLfloat rotateZ = 0.0f;
-
+// Object position variables
+glm::vec3 objectPositions = glm::vec3(0.0f, 0.0f, 0.0f);
+GLfloat objectRotate = 0.0f;
 GLfloat escaleObject = 1.0f;
 
 // Light attributes
@@ -177,10 +162,9 @@ int main()
 		// Draw container
 		glBindVertexArray(VAO);
 		glm::mat4 model;
-		model = glm::translate(model, glm::vec3(objectX, objectY, objectZ));
-		model = glm::rotate(model, glm::radians(rotateX), glm::vec3(1.0f, 0.0f, 0.0f));
-		model = glm::rotate(model, glm::radians(rotateY), glm::vec3(0.0f, 1.0f, 0.0f));
-		model = glm::rotate(model, glm::radians(rotateZ), glm::vec3(0.0f, 0.0f, 1.0f));
+		// model = glm::translate(model, glm::vec3(objectX, objectY, objectZ));
+		model = glm::translate(model, objectPositions);
+		model = glm::rotate(model, glm::radians(objectRotate), glm::vec3(1.0f, 1.0f, 1.0f));
 		model = glm::scale(model, glm::vec3(escaleObject));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
@@ -217,9 +201,11 @@ int main()
 // Is called whenever a key is pressed/released via GLFW
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
+	//Close window
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
 
+	//Handle camera movimentation
 	float cameraSpeed = 0.05f;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		cameraPos += cameraSpeed * cameraFront;
@@ -230,25 +216,18 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 
+	//Handle object movimentation
 	if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
-		objectX -= 0.1f;
+		objectPositions -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
-		objectX += 0.1f;
+		objectPositions += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
-		objectY += 0.1f;
+		objectPositions += cameraSpeed * cameraFront;
 	if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
-		objectY -= 0.1f;
-	if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
-		objectZ -= 0.1f;
-	if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
-		objectZ += 0.1f;
+		objectPositions -= cameraSpeed * cameraFront;
 
-	if (glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS)
-		 rotateX += 1.0f;
 	if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
-		 rotateY += 1.0f;
-	if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS)
-		rotateZ += 1.0f;
+		 objectRotate += 1.0f;
 
 	if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
 		escaleObject += 0.1f;
