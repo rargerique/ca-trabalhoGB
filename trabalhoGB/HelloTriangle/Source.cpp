@@ -14,6 +14,7 @@ using namespace std;
 #include "Shader.h"
 
 // Function prototypes
+GLFWwindow* initializeEnvironment();
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 bool loadOBJ(const char * path, std::vector<glm::vec3>& out_vertices, std::vector<glm::vec3>& out_uvs, std::vector<glm::vec3>& out_normals);
@@ -34,7 +35,7 @@ GLfloat escaleObject = 1.0f;
 // Light attributes
 glm::vec3 lightPos(-1.2f, 2.0f, 5.0f);
 
-//Mouse
+// Mouse attributes
 bool firstMouse = true;
 float yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
 float pitch = 0.0f;
@@ -42,41 +43,13 @@ float lastX = 800.0f / 2.0;
 float lastY = 600.0 / 2.0;
 float fov = 45.0f;
 
-// The MAIN function, from here we start the application and run the game loop
 int main()
 {
-	// Init GLFW
-	glfwInit();
+	GLFWwindow* window = initializeEnvironment();
 
-	// Create a GLFWwindow object that we can use for GLFW's functions
-	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "LearnOpenGL", nullptr, nullptr);
-	glfwMakeContextCurrent(window);
-
-	// Set the required callback functions
-	glfwSetKeyCallback(window, key_callback);
-
-	// Set this to true so GLEW knows to use a modern approach to retrieving function pointers and extensions
-	glewExperimental = GL_TRUE;
-	// Initialize GLEW to setup the OpenGL Function pointers
-	glewInit();
-
-	/* get version info */
-	const GLubyte* renderer = glGetString(GL_RENDERER); /* get renderer string */
-	const GLubyte* version = glGetString(GL_VERSION); /* version as a string */
-	cout << "Renderer: " << renderer << endl;
-	cout << "OpenGL version supported " << version << endl;
-
-	// Define the viewport dimensions
-	int width, height;
-	glfwGetFramebufferSize(window, &width, &height);
-	glViewport(0, 0, width, height);
-
-	// Build and compile our shader program
-	Shader ourShader("../shaders/transformations.vs", "../shaders/transformations.frag");
 	Shader lightingShader("../shaders/lighting.vs", "../shaders/lighting.frag");
 	Shader lampShader("../shaders/lamp.vs", "../shaders/lamp.frag");
 
-	//Load obj
 	std::vector< glm::vec3 > vertices;
 	std::vector< glm::vec3 > uvs;
 	std::vector< glm::vec3 > normals; 
@@ -198,7 +171,26 @@ int main()
 	return 0;
 }
 
-// Is called whenever a key is pressed/released via GLFW
+GLFWwindow* initializeEnvironment() {
+	glfwInit();
+	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "LearnOpenGL", nullptr, nullptr);
+	glfwMakeContextCurrent(window);
+	glfwSetKeyCallback(window, key_callback);
+	glewExperimental = GL_TRUE;
+	glewInit();
+
+	const GLubyte* renderer = glGetString(GL_RENDERER); /* get renderer string */
+	const GLubyte* version = glGetString(GL_VERSION); /* version as a string */
+	cout << "Renderer: " << renderer << endl;
+	cout << "OpenGL version supported " << version << endl;
+
+	int width, height;
+	glfwGetFramebufferSize(window, &width, &height);
+	glViewport(0, 0, width, height);
+
+	return window;
+}
+
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
 	//Close window
