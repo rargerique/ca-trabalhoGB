@@ -17,6 +17,7 @@ using namespace std;
 GLFWwindow* initializeEnvironment();
 void loadObject(GLuint VBOs[3], GLuint VAO, std::vector< glm::vec3 > vertices, std::vector< glm::vec3 > uvs, std::vector< glm::vec3 > normals);
 void loadLight(GLuint VBO, GLuint VAO);
+void drawObject(Shader shader);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 bool loadOBJ(const char * path, std::vector<glm::vec3>& out_vertices, std::vector<glm::vec3>& out_uvs, std::vector<glm::vec3>& out_normals);
@@ -66,84 +67,30 @@ int main()
 	glGenBuffers(1, &lightVBO);
 	loadLight(lightVBO, lightVAO);
 
-	glBindVertexArray(0); // Unbind VAO (it's always a good thing to unbind any buffer/array to prevent strange bugs)
+	glBindVertexArray(0);
 
-	//Habilita o z-buffer
-	glEnable(GL_DEPTH_TEST);
-
-	// tell GLFW to capture our mouse
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	glfwSetCursorPosCallback(window, mouse_callback);
-
-	// Game loop
 	while (!glfwWindowShouldClose(window))
 	{
-		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
 		glfwPollEvents();
 
-		// Render
-		// Clear the colorbuffer
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// Use cooresponding shader when setting uniforms/drawing objects
-		lightingShader.Use();
-		GLint objectColorLoc = glGetUniformLocation(lightingShader.Program, "objectColor");
-		GLint lightColorLoc = glGetUniformLocation(lightingShader.Program, "lightColor");
-		GLint lightPosLoc = glGetUniformLocation(lightingShader.Program, "lightPos");
-		GLint viewPosLoc = glGetUniformLocation(lightingShader.Program, "viewPos");
-		glUniform3f(objectColorLoc, 1.0f, 0.5f, 0.31f);
-		glUniform3f(lightColorLoc, 5.0f, 1.0f, 1.0f);
-		glUniform3f(lightPosLoc, lightPos.x, lightPos.y, lightPos.z);
-		glUniform3f(viewPosLoc, cameraPos[0], cameraPos[1], cameraPos[2]);
-
-		// Create camera transformations
-		glm::mat4 view;
-		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);		
-		glm::mat4 projection = glm::perspective(45.0f, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.1f, 100.0f);
-		// Get the uniform locations
-		GLint modelLoc = glGetUniformLocation(lightingShader.Program, "model");
-		GLint viewLoc = glGetUniformLocation(lightingShader.Program, "view");
-		GLint projLoc = glGetUniformLocation(lightingShader.Program, "projection");
-		// Pass the matrices to the shader
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-
-		// Draw container
+		// Draw object
+		drawObject(lightingShader);
 		glBindVertexArray(VAO);
-		glm::mat4 model;
-		// model = glm::translate(model, glm::vec3(objectX, objectY, objectZ));
-		model = glm::translate(model, objectPositions);
-		model = glm::rotate(model, glm::radians(objectRotate), glm::vec3(1.0f, 1.0f, 1.0f));
-		model = glm::scale(model, glm::vec3(escaleObject));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
-		glBindVertexArray(0);
-
-		// Also draw the lamp object, again binding the appropriate shader
-		lampShader.Use();
-		// Get location objects for the matrices on the lamp shader (these could be different on a different shader)
-		modelLoc = glGetUniformLocation(lampShader.Program, "model");
-		viewLoc = glGetUniformLocation(lampShader.Program, "view");
-		projLoc = glGetUniformLocation(lampShader.Program, "projection");
-		// Set matrices
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-		model = glm::mat4();
-		model = glm::translate(model, lightPos);
-		model = glm::scale(model, glm::vec3(0.2f)); // Make it a smaller cube
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		// Draw the light object (using light's vertex attributes)
-		glBindVertexArray(lightVAO);
 		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 		glBindVertexArray(0);
 
 		// Swap the screen buffers
 		glfwSwapBuffers(window);
 	}
+
 	// Properly de-allocate all resources once they've outlived their purpose
 	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(2, VBOs);
+	glDeleteBuffers(3, VBOs);
+	glDeleteVertexArrays(1, &lightVAO);
+	glDeleteBuffers(1, &lightVBO);
 	glfwTerminate();
 	return 0;
 }
@@ -164,6 +111,11 @@ GLFWwindow* initializeEnvironment() {
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
 	glViewport(0, 0, width, height);
+
+	glEnable(GL_DEPTH_TEST);
+
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetCursorPosCallback(window, mouse_callback);
 
 	return window;
 }
@@ -194,6 +146,37 @@ void loadLight(GLuint VBO, GLuint VAO) {
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glEnableVertexAttribArray(0);
+}
+
+void drawObject(Shader lightingShader) {
+	// Use cooresponding shader when setting uniforms/drawing objects
+	lightingShader.Use();
+	GLint objectColorLoc = glGetUniformLocation(lightingShader.Program, "objectColor");
+	GLint lightColorLoc = glGetUniformLocation(lightingShader.Program, "lightColor");
+	GLint lightPosLoc = glGetUniformLocation(lightingShader.Program, "lightPos");
+	GLint viewPosLoc = glGetUniformLocation(lightingShader.Program, "viewPos");
+	glUniform3f(objectColorLoc, 1.0f, 0.5f, 0.31f);
+	glUniform3f(lightColorLoc, 5.0f, 1.0f, 1.0f);
+	glUniform3f(lightPosLoc, lightPos.x, lightPos.y, lightPos.z);
+	glUniform3f(viewPosLoc, cameraPos[0], cameraPos[1], cameraPos[2]);
+
+	// Create camera transformations
+	glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+	glm::mat4 projection = glm::perspective(45.0f, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.1f, 100.0f);
+	glm::mat4 model;
+	model = glm::translate(model, objectPositions);
+	model = glm::rotate(model, glm::radians(objectRotate), glm::vec3(1.0f, 1.0f, 1.0f));
+	model = glm::scale(model, glm::vec3(escaleObject));
+
+	// Get the uniform locations
+	GLint modelLoc = glGetUniformLocation(lightingShader.Program, "model");
+	GLint viewLoc = glGetUniformLocation(lightingShader.Program, "view");
+	GLint projLoc = glGetUniformLocation(lightingShader.Program, "projection");
+
+	// Pass the matrices to the shader
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
