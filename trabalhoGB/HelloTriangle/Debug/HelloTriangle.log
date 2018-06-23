@@ -1,11 +1,11 @@
 ﻿  Source.cpp
-c:\users\i849842\personal\unisinos\computação gráfica\trabalhogb\ca-trabalhogb\trabalhogb\hellotriangle\source.cpp(223): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\i849842\personal\unisinos\computação gráfica\trabalhogb\ca-trabalhogb\trabalhogb\hellotriangle\source.cpp(224): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\i849842\personal\unisinos\computação gráfica\trabalhogb\ca-trabalhogb\trabalhogb\hellotriangle\source.cpp(228): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-c:\users\i849842\personal\unisinos\computação gráfica\trabalhogb\ca-trabalhogb\trabalhogb\hellotriangle\source.cpp(229): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-c:\users\i849842\personal\unisinos\computação gráfica\trabalhogb\ca-trabalhogb\trabalhogb\hellotriangle\source.cpp(230): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\i849842\personal\unisinos\computação gráfica\trabalhogb\ca-trabalhogb\trabalhogb\hellotriangle\source.cpp(231): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\i849842\personal\unisinos\computação gráfica\trabalhogb\ca-trabalhogb\trabalhogb\hellotriangle\source.cpp(328): warning C4715: 'loadOBJ': not all control paths return a value
+c:\users\i849842\personal\unisinos\computação gráfica\trabalhogb\ca-trabalhogb\trabalhogb\hellotriangle\source.cpp(265): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\i849842\personal\unisinos\computação gráfica\trabalhogb\ca-trabalhogb\trabalhogb\hellotriangle\source.cpp(266): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\i849842\personal\unisinos\computação gráfica\trabalhogb\ca-trabalhogb\trabalhogb\hellotriangle\source.cpp(270): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\i849842\personal\unisinos\computação gráfica\trabalhogb\ca-trabalhogb\trabalhogb\hellotriangle\source.cpp(271): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\i849842\personal\unisinos\computação gráfica\trabalhogb\ca-trabalhogb\trabalhogb\hellotriangle\source.cpp(272): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\i849842\personal\unisinos\computação gráfica\trabalhogb\ca-trabalhogb\trabalhogb\hellotriangle\source.cpp(273): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\i849842\personal\unisinos\computação gráfica\trabalhogb\ca-trabalhogb\trabalhogb\hellotriangle\source.cpp(370): warning C4715: 'loadOBJ': not all control paths return a value
 glfw3.lib(context.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(context.obj)' or at 'C:\Users\i849842\Personal\Unisinos\ComputaþÒo Grßfica\trabalhoGB\ca-trabalhoGB\trabalhoGB\Debug\glfw.pdb'; linking object as if no debug info
 glfw3.lib(init.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(init.obj)' or at 'C:\Users\i849842\Personal\Unisinos\ComputaþÒo Grßfica\trabalhoGB\ca-trabalhoGB\trabalhoGB\Debug\glfw.pdb'; linking object as if no debug info
 glfw3.lib(input.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(input.obj)' or at 'C:\Users\i849842\Personal\Unisinos\ComputaþÒo Grßfica\trabalhoGB\ca-trabalhoGB\trabalhoGB\Debug\glfw.pdb'; linking object as if no debug info
