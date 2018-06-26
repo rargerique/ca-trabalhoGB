@@ -15,6 +15,7 @@ using namespace std;
 #include "stb_image.h"
 
 // Function prototypes
+void readConfigFile(const char * path);
 GLFWwindow* initializeEnvironment();
 void loadObject(GLuint VBOs[3], GLuint VAO, std::vector< glm::vec3 > vertices, std::vector< glm::vec3 > uvs, std::vector< glm::vec3 > normals);
 void loadLight(GLuint VBO, GLuint VAO);
@@ -22,6 +23,7 @@ void drawObject(Shader shader);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 bool loadOBJ(const char * path, std::vector<glm::vec3>& out_vertices, std::vector<glm::vec3>& out_uvs, std::vector<glm::vec3>& out_normals);
+void loadMaterials(const char * path);
 
 // Window dimensions
 const GLuint WIDTH = 800, HEIGHT = 600;
@@ -47,8 +49,15 @@ float lastX = 800.0f / 2.0;
 float lastY = 600.0 / 2.0;
 float fov = 45.0f;
 
-//Texture index
-unsigned int texture;
+struct Material {
+	glm::vec3 ka;
+	glm::vec3 kd;
+	glm::vec3 ks;
+	std::string map;
+};
+
+Material materials[5];
+int* textureBind = new int[5];
 
 int main()
 {
@@ -59,11 +68,54 @@ int main()
 
 	// Load first object
 	std::vector< glm::vec3 > vertices, uvs, normals;
-	bool res = loadOBJ("Charmander.obj", vertices, uvs, normals);
+	bool res = loadOBJ("Pikachu.obj", vertices, uvs, normals);
+	loadMaterials("Pikachu.mtl");
 	GLuint VBOs[3], VAO;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(3, VBOs);
 	loadObject(VBOs, VAO, vertices, uvs, normals);
+
+	//--------------------------------------BEGIN-TEXTURE
+	int i = 0;
+	for each (Material mat in materials) {
+		//Texture index
+		unsigned int texture;
+
+		glGenTextures(1, &texture);
+		glBindTexture(GL_TEXTURE_2D, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
+											   // set the texture wrapping parameters
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		// set texture filtering parameters
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		// load image, create texture and generate mipmaps
+		int width, height, nrChannels;
+		//unsigned char *data = SOIL_load_image("../textures/wall.jpg", &width, &height, 0, SOIL_LOAD_RGB);
+		unsigned char *data = stbi_load(materials[i].map.c_str(), &width, &height, &nrChannels, 0);
+
+		if (data)
+		{
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+			glGenerateMipmap(GL_TEXTURE_2D);
+		}
+		else
+		{
+			std::cout << "Failed to load texture" << std::endl;
+		}
+		stbi_image_free(data);
+
+		glBindTexture(GL_TEXTURE_2D, 0); // Unbind texture when done, so we won't accidentily mess up our texture.
+		textureBind[i] = texture;
+		i++;
+	}
+
+	//glActiveTexture(GL_TEXTURE0);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//-------------------------------------------END-OF-TEXTURE
 
 	// Load light
 	GLuint lightVAO, lightVBO;
@@ -82,9 +134,15 @@ int main()
 
 		// Draw object
 		drawObject(lightingShader);
-		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
-		glBindVertexArray(0);
+
+		//-------------------------------------TEXTURE
+		for (int j = 0; j < 5; j++) {
+			glBindVertexArray(VAO);
+			glBindTexture(GL_TEXTURE_2D, textureBind[j]);
+			glDrawArrays(GL_TRIANGLES, 0, uvs.size());
+			glBindVertexArray(0);
+		}
+		//-------------------------------------TEXTURE
 
 		// Swap the screen buffers
 		glfwSwapBuffers(window);
@@ -144,41 +202,6 @@ void loadObject(GLuint VBOs[3], GLuint VAO, std::vector< glm::vec3 > vertices, s
 	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec3), &uvs[0], GL_STATIC_DRAW);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
 	glEnableVertexAttribArray(2);
-
-	// Texture
-	// load and create a texture 
-	// -------------------------
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-										   // set the texture wrapping parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	// set texture filtering parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	// load image, create texture and generate mipmaps
-	int width, height, nrChannels;
-	//unsigned char *data = SOIL_load_image("../textures/wall.jpg", &width, &height, 0, SOIL_LOAD_RGB);
-	unsigned char *data = stbi_load("../textures/Charmander.png", &width, &height, &nrChannels, 0);
-
-	if (data)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else
-	{
-		std::cout << "Failed to load texture" << std::endl;
-	}
-	stbi_image_free(data);
-
-	glBindTexture(GL_TEXTURE_2D, 0); // Unbind texture when done, so we won't accidentily mess up our texture.
-
-	glActiveTexture(GL_TEXTURE0);
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void loadLight(GLuint VBO, GLuint VAO) {
@@ -190,14 +213,23 @@ void loadLight(GLuint VBO, GLuint VAO) {
 void drawObject(Shader lightingShader) {
 	// Use cooresponding shader when setting uniforms/drawing objects
 	lightingShader.Use();
-	GLint objectColorLoc = glGetUniformLocation(lightingShader.Program, "objectColor");
+	//GLint objectColorLoc = glGetUniformLocation(lightingShader.Program, "objectColor");
 	GLint lightColorLoc = glGetUniformLocation(lightingShader.Program, "lightColor");
 	GLint lightPosLoc = glGetUniformLocation(lightingShader.Program, "lightPos");
 	GLint viewPosLoc = glGetUniformLocation(lightingShader.Program, "viewPos");
-	glUniform3f(objectColorLoc, 1.0f, 0.5f, 0.31f);
+	GLint kaLoc = glGetUniformLocation(lightingShader.Program, "ka");
+	GLint kdLoc = glGetUniformLocation(lightingShader.Program, "kd");
+	GLint ksLoc = glGetUniformLocation(lightingShader.Program, "ks");
+	//glUniform3f(objectColorLoc, 1.0f, 0.5f, 0.31f);
 	glUniform3f(lightColorLoc, 5.0f, 1.0f, 1.0f);
 	glUniform3f(lightPosLoc, lightPos.x, lightPos.y, lightPos.z);
 	glUniform3f(viewPosLoc, cameraPos[0], cameraPos[1], cameraPos[2]);
+
+	for (int j = 0; j < 5; j++) {
+		glUniform1f(kaLoc, materials[j].ka.x);
+		glUniform1f(kdLoc, materials[j].kd.x);
+		glUniform1f(ksLoc, materials[j].ks.x);
+	}
 
 	// Create camera transformations
 	glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
@@ -217,7 +249,7 @@ void drawObject(Shader lightingShader) {
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
-	glBindTexture(GL_TEXTURE_2D, texture);
+	//glBindTexture(GL_TEXTURE_2D, texture);
 	glUniform1i(glGetUniformLocation(lightingShader.Program, "ourTexture"), 0);
 }
 
@@ -366,5 +398,43 @@ bool loadOBJ(const char * path, std::vector<glm::vec3>& out_vertices, std::vecto
 		unsigned int normalIndex = normalIndices[i];
 		glm::vec3 normal = temp_normals[normalIndex - 1];
 		out_normals.push_back(normal);
+	}
+}
+
+void loadMaterials(const char * path) {
+	//opening file
+	FILE * file = fopen(path, "r");
+	int matIndex = 0;
+
+	while (1) {
+
+		char lineHeader[128];
+		// read the first word of the line
+		int res = fscanf(file, "%s", lineHeader);
+		if (res == EOF)
+			break;
+
+		//read the ka
+		if (strcmp(lineHeader, "Ka") == 0) {
+			glm::vec3 ka;
+			fscanf(file, "%f %f %f\n", &ka.x, &ka.y, &ka.z);
+			materials[matIndex].ka = ka;
+		}
+		else if (strcmp(lineHeader, "Kd") == 0) { //read the kd
+			glm::vec3 kd;
+			fscanf(file, "%f %f %f\n", &kd.x, &kd.y, &kd.z);
+			materials[matIndex].kd = kd;
+		}
+		else if (strcmp(lineHeader, "Ks") == 0) { //read the ks
+			glm::vec3 ks;
+			fscanf(file, "%f %f %f\n", &ks.x, &ks.y, &ks.z);
+			materials[matIndex].ks = ks;
+		}
+		else if (strcmp(lineHeader, "map_Kd") == 0) { //read the map 
+			char map[128];
+			fscanf(file, "%s", &map);
+			materials[matIndex].map = map;
+			matIndex++;
+		}
 	}
 }

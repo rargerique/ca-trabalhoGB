@@ -6,7 +6,7 @@ newmtl mat1
 	illum 2
 	Ka 0.5 0.5 0.5
 	Kd 0.9 0.9 0.9
-	Ks 0.0 0.0 0.0
+	Ks 0.5 0.5 0.5
 	map_Kd Textures/PikachuDh.png
 
 newmtl mat2
@@ -17,7 +17,7 @@ newmtl mat2
 	illum 2
 	Ka 0.5 0.5 0.5
 	Kd 0.9 0.9 0.9
-	Ks 0.0 0.0 0.0
+	Ks 0.5 0.5 0.5
 	map_Kd Textures/PikachuEyeDh.png
 
 newmtl mat3
@@ -28,7 +28,7 @@ newmtl mat3
 	illum 2
 	Ka 0.5 0.5 0.5
 	Kd 0.9 0.9 0.9
-	Ks 0.0 0.0 0.0
+	Ks 0.5 0.5 0.5
 	map_Kd Textures/PikachuHohoDh.png
 
 newmtl mat4
@@ -39,7 +39,7 @@ newmtl mat4
 	illum 2
 	Ka 0.5 0.5 0.5
 	Kd 0.9 0.9 0.9
-	Ks 0.0 0.0 0.0
+	Ks 0.5 0.5 0.5
 	map_Kd Textures/PikachuMouthDh.png
 
 newmtl mat5
@@ -50,6 +50,5 @@ newmtl mat5
 	illum 2
 	Ka 0.5 0.5 0.5
 	Kd 0.9 0.9 0.9
-	Ks 0.0 0.0 0.0
+	Ks 0.5 0.5 0.5
 	map_Kd Textures/PikachuDh.png
-
