@@ -11,30 +11,31 @@ uniform vec3 lightColor;
 uniform vec3 objectColor;
 uniform sampler2D ourTexture;
 
+uniform float ka;
+uniform float kd;
+uniform float ks;
+
 void main()
 {
-    // Ambient
-    float ambientStrength = 0.1f;
-    vec3 ambient = ambientStrength * lightColor;
+
+	// Ambient
+    vec3 ambient = ka * lightColor;
   	
     // Diffuse 
     vec3 norm = normalize(Normal);
     vec3 lightDir = normalize(lightPos - FragPos);
     float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diff * lightColor;
+    vec3 diffuse = kd * diff * lightColor;
     
     // Specular
-    float specularStrength = 0.5f;
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 reflectDir = reflect(-lightDir, norm);  
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-    vec3 specular = specularStrength * spec * lightColor;
-	
+    vec3 specular = ks * spec * lightColor;  
+
 	vec4 asd = texture(ourTexture, TexCoord);
+        
     vec4 result = vec4((ambient + diffuse + specular),1.0) * asd;
-      
-	color = result;  
-    //vec3 result = (ambient + diffuse + specular) * objectColor;
-    //color = vec4(result, 1.0f);
+    color = result;
 } 
 

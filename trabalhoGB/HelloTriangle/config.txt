@@ -1,1 +1,12 @@
 filename     Pikachu.obj
+positionx    0
+positiony    0
+positionz    0
+rotation     0
+escale		 1
+lightcolorx  5
+lightcolory  1
+lightcolorz  1
+cameraposx   0
+cameraposy   3
+cameraposz   10

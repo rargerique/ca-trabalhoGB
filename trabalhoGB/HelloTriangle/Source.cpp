@@ -29,7 +29,7 @@ void loadMaterials(const char * path);
 const GLuint WIDTH = 800, HEIGHT = 600;
 
 // Camera variables
-glm::vec3 cameraPos = glm::vec3(0.0f, 3.0f, 10.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 0.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -59,16 +59,24 @@ struct Material {
 Material materials[5];
 int* textureBind = new int[5];
 
+
+//Config file parameters
+std::string objPath;
+glm::vec3 lightColor(0.0f, 0.0f, 0.0f);
+
+
 int main()
 {
 	GLFWwindow* window = initializeEnvironment();
+
+	readConfigFile("config.txt");
 
 	Shader lightingShader("../shaders/lighting.vs", "../shaders/lighting.frag");
 	Shader lampShader("../shaders/lamp.vs", "../shaders/lamp.frag");
 
 	// Load first object
 	std::vector< glm::vec3 > vertices, uvs, normals;
-	bool res = loadOBJ("Pikachu.obj", vertices, uvs, normals);
+	bool res = loadOBJ(objPath.c_str(), vertices, uvs, normals);
 	loadMaterials("Pikachu.mtl");
 	GLuint VBOs[3], VAO;
 	glGenVertexArrays(1, &VAO);
@@ -213,7 +221,7 @@ void loadLight(GLuint VBO, GLuint VAO) {
 void drawObject(Shader lightingShader) {
 	// Use cooresponding shader when setting uniforms/drawing objects
 	lightingShader.Use();
-	//GLint objectColorLoc = glGetUniformLocation(lightingShader.Program, "objectColor");
+	// GLint objectColorLoc = glGetUniformLocation(lightingShader.Program, "objectColor");
 	GLint lightColorLoc = glGetUniformLocation(lightingShader.Program, "lightColor");
 	GLint lightPosLoc = glGetUniformLocation(lightingShader.Program, "lightPos");
 	GLint viewPosLoc = glGetUniformLocation(lightingShader.Program, "viewPos");
@@ -221,7 +229,7 @@ void drawObject(Shader lightingShader) {
 	GLint kdLoc = glGetUniformLocation(lightingShader.Program, "kd");
 	GLint ksLoc = glGetUniformLocation(lightingShader.Program, "ks");
 	//glUniform3f(objectColorLoc, 1.0f, 0.5f, 0.31f);
-	glUniform3f(lightColorLoc, 5.0f, 1.0f, 1.0f);
+	glUniform3f(lightColorLoc, lightColor.x, lightColor.y, lightColor.z);
 	glUniform3f(lightPosLoc, lightPos.x, lightPos.y, lightPos.z);
 	glUniform3f(viewPosLoc, cameraPos[0], cameraPos[1], cameraPos[2]);
 
@@ -435,6 +443,60 @@ void loadMaterials(const char * path) {
 			fscanf(file, "%s", &map);
 			materials[matIndex].map = map;
 			matIndex++;
+		}
+	}
+}
+
+void readConfigFile(const char * path) {
+	//opening file
+	FILE * file = fopen(path, "r");
+
+	while (1) {
+
+		char lineHeader[128];
+		// read the first word of the line
+		int res = fscanf(file, "%s", lineHeader);
+		if (res == EOF)
+			break;
+
+		//read the location of the obj file
+		if (strcmp(lineHeader, "filename") == 0) {
+			char map[128];
+			fscanf(file, "%s", &map);
+			objPath = map;
+		}
+		else if (strcmp(lineHeader, "positionx") == 0) {
+			fscanf(file, "%f", &objectPositions.x);
+		}
+		else if (strcmp(lineHeader, "positiony") == 0) {
+			fscanf(file, "%f", &objectPositions.y);
+		}
+		else if (strcmp(lineHeader, "positionz") == 0) {
+			fscanf(file, "%f", &objectPositions.z);
+		}
+		else if (strcmp(lineHeader, "rotation") == 0) {
+			fscanf(file, "%f", &objectRotate);
+		}
+		else if (strcmp(lineHeader, "escale") == 0) {
+			fscanf(file, "%f", &escaleObject);
+		}
+		else if (strcmp(lineHeader, "lightcolorx") == 0) {
+			fscanf(file, "%f", &lightColor.x);
+		}
+		else if (strcmp(lineHeader, "lightcolory") == 0) {
+			fscanf(file, "%f", &lightColor.y);
+		}
+		else if (strcmp(lineHeader, "lightcolorz") == 0) {
+			fscanf(file, "%f", &lightColor.z);
+		}
+		else if (strcmp(lineHeader, "cameraposx") == 0) {
+			fscanf(file, "%f", &cameraPos.x);
+		}
+		else if (strcmp(lineHeader, "cameraposy") == 0) {
+			fscanf(file, "%f", &cameraPos.y);
+		}
+		else if (strcmp(lineHeader, "cameraposz") == 0) {
+			fscanf(file, "%f", &cameraPos.z);
 		}
 	}
 }
