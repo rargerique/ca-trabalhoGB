@@ -14,16 +14,38 @@ using namespace std;
 #include "Shader.h"
 #include "stb_image.h"
 
+struct Material {
+	glm::vec3 ka;
+	glm::vec3 kd;
+	glm::vec3 ks;
+	std::string map;
+};
+
+
+struct Obj {
+	std::string path;
+	glm::vec3 position;
+	GLfloat rotate;
+	GLfloat escale;
+	std::vector< glm::vec3 > vertices;
+	std::vector< glm::vec2 > uvs;
+	std::vector< glm::vec3 > normals;
+	GLuint VBOs[3];
+	GLuint VAO;
+	Material materials[5];
+	int* textureBind = new int[5];
+};
+
 // Function prototypes
 void readConfigFile(const char * path);
 GLFWwindow* initializeEnvironment();
-void loadObject(GLuint VBOs[3], GLuint VAO, std::vector< glm::vec3 > vertices, std::vector< glm::vec3 > uvs, std::vector< glm::vec3 > normals);
+void loadObject(GLuint VBOs[3], GLuint VAO, std::vector< glm::vec3 > vertices, std::vector< glm::vec2 > uvs, std::vector< glm::vec3 > normals);
 void loadLight(GLuint VBO, GLuint VAO);
-void drawObject(Shader shader);
+void drawObject(Shader shader, Obj object);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-bool loadOBJ(const char * path, std::vector<glm::vec3>& out_vertices, std::vector<glm::vec3>& out_uvs, std::vector<glm::vec3>& out_normals);
-void loadMaterials(const char * path);
+bool loadOBJ(const char * path, std::vector<glm::vec3>& out_vertices, std::vector<glm::vec2>& out_uvs, std::vector<glm::vec3>& out_normals);
+void loadMaterials(const char * path, Obj *object);
 
 // Window dimensions
 const GLuint WIDTH = 800, HEIGHT = 600;
@@ -34,9 +56,9 @@ glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 // Object position variables
-glm::vec3 objectPositions = glm::vec3(0.0f, 0.0f, 0.0f);
-GLfloat objectRotate = 0.0f;
-GLfloat escaleObject = 1.0f;
+//glm::vec3 objectPositions = glm::vec3(0.0f, 0.0f, 0.0f);
+//GLfloat objectRotate = 0.0f;
+//GLfloat escaleObject = 1.0f;
 
 // Light attributes
 glm::vec3 lightPos(-1.2f, 2.0f, 5.0f);
@@ -49,20 +71,14 @@ float lastX = 800.0f / 2.0;
 float lastY = 600.0 / 2.0;
 float fov = 45.0f;
 
-struct Material {
-	glm::vec3 ka;
-	glm::vec3 kd;
-	glm::vec3 ks;
-	std::string map;
-};
-
-Material materials[5];
-int* textureBind = new int[5];
-
-
 //Config file parameters
-std::string objPath;
+// std::string objPath;
 glm::vec3 lightColor(0.0f, 0.0f, 0.0f);
+
+//Multiple objects 
+int numberOfObjs = 0;
+
+Obj objects[20];
 
 
 int main()
@@ -74,49 +90,50 @@ int main()
 	Shader lightingShader("../shaders/lighting.vs", "../shaders/lighting.frag");
 	Shader lampShader("../shaders/lamp.vs", "../shaders/lamp.frag");
 
-	// Load first object
-	std::vector< glm::vec3 > vertices, uvs, normals;
-	bool res = loadOBJ(objPath.c_str(), vertices, uvs, normals);
-	loadMaterials("Pikachu.mtl");
-	GLuint VBOs[3], VAO;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(3, VBOs);
-	loadObject(VBOs, VAO, vertices, uvs, normals);
+	for (int k = 0; k < numberOfObjs; k++) {
+		// Load object
+		bool res = loadOBJ(objects[k].path.c_str(), objects[k].vertices, objects[k].uvs, objects[k].normals);
+		loadMaterials("Pikachu.mtl", &objects[k]);
+		glGenVertexArrays(1, &objects[k].VAO);
+		glGenBuffers(3, objects[k].VBOs);
+		loadObject(objects[k].VBOs, objects[k].VAO, objects[k].vertices, objects[k].uvs, objects[k].normals);
 
-	//--------------------------------------BEGIN-TEXTURE
-	int i = 0;
-	for each (Material mat in materials) {
-		//Texture index
-		unsigned int texture;
+		//--------------------------------------BEGIN-TEXTURE
+		int i = 0;
+		for each (Material mat in objects[k].materials) {
+			//Texture index
+			unsigned int texture;
 
-		glGenTextures(1, &texture);
-		glBindTexture(GL_TEXTURE_2D, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-											   // set the texture wrapping parameters
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		// set texture filtering parameters
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glGenTextures(1, &texture);
+			glBindTexture(GL_TEXTURE_2D, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
+												   // set the texture wrapping parameters
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			// set texture filtering parameters
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-		// load image, create texture and generate mipmaps
-		int width, height, nrChannels;
-		//unsigned char *data = SOIL_load_image("../textures/wall.jpg", &width, &height, 0, SOIL_LOAD_RGB);
-		unsigned char *data = stbi_load(materials[i].map.c_str(), &width, &height, &nrChannels, 0);
+			// load image, create texture and generate mipmaps
+			int width, height, nrChannels;
+			//unsigned char *data = SOIL_load_image("../textures/wall.jpg", &width, &height, 0, SOIL_LOAD_RGB);
+			unsigned char *data = stbi_load(objects[k].materials[i].map.c_str(), &width, &height, &nrChannels, 0);
 
-		if (data)
-		{
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-			glGenerateMipmap(GL_TEXTURE_2D);
+			if (data)
+			{
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+				glGenerateMipmap(GL_TEXTURE_2D);
+			}
+			else
+			{
+				std::cout << "Failed to load texture" << std::endl;
+			}
+			stbi_image_free(data);
+
+			glBindTexture(GL_TEXTURE_2D, 0); // Unbind texture when done, so we won't accidentily mess up our texture.
+			objects[k].textureBind[i] = texture;
+			i++;
 		}
-		else
-		{
-			std::cout << "Failed to load texture" << std::endl;
-		}
-		stbi_image_free(data);
 
-		glBindTexture(GL_TEXTURE_2D, 0); // Unbind texture when done, so we won't accidentily mess up our texture.
-		textureBind[i] = texture;
-		i++;
 	}
 
 	//glActiveTexture(GL_TEXTURE0);
@@ -140,25 +157,23 @@ int main()
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// Draw object
-		drawObject(lightingShader);
+		for (int k = 0; k < numberOfObjs; k++) {
+			// Draw object
+			drawObject(lightingShader, objects[k]);
 
-		//-------------------------------------TEXTURE
-		for (int j = 0; j < 5; j++) {
-			glBindVertexArray(VAO);
-			glBindTexture(GL_TEXTURE_2D, textureBind[j]);
-			glDrawArrays(GL_TRIANGLES, 0, uvs.size());
+			glBindVertexArray(objects[k].VAO);
+			glBindTexture(GL_TEXTURE_2D, objects[k].textureBind[k]);
+			glDrawArrays(GL_TRIANGLES, 0, objects[k].uvs.size());
 			glBindVertexArray(0);
 		}
-		//-------------------------------------TEXTURE
 
 		// Swap the screen buffers
 		glfwSwapBuffers(window);
 	}
 
 	// Properly de-allocate all resources once they've outlived their purpose
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(3, VBOs);
+	// glDeleteVertexArrays(1, &VAO);
+	//glDeleteBuffers(3, VBOs);
 	glDeleteVertexArrays(1, &lightVAO);
 	glDeleteBuffers(1, &lightVBO);
 	glfwTerminate();
@@ -190,7 +205,7 @@ GLFWwindow* initializeEnvironment() {
 	return window;
 }
 
-void loadObject(GLuint VBOs[3], GLuint VAO, std::vector< glm::vec3 > vertices, std::vector< glm::vec3 > uvs, std::vector< glm::vec3 > normals) {
+void loadObject(GLuint VBOs[3], GLuint VAO, std::vector< glm::vec3 > vertices, std::vector< glm::vec2 > uvs, std::vector< glm::vec3 > normals) {
 	glBindVertexArray(VAO);
 
 	// Position attribute
@@ -207,8 +222,8 @@ void loadObject(GLuint VBOs[3], GLuint VAO, std::vector< glm::vec3 > vertices, s
 
 	// Texture attribute
 	glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec3), &uvs[0], GL_STATIC_DRAW);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
+	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
 	glEnableVertexAttribArray(2);
 }
 
@@ -218,7 +233,7 @@ void loadLight(GLuint VBO, GLuint VAO) {
 	glEnableVertexAttribArray(0);
 }
 
-void drawObject(Shader lightingShader) {
+void drawObject(Shader lightingShader, Obj object) {
 	// Use cooresponding shader when setting uniforms/drawing objects
 	lightingShader.Use();
 	// GLint objectColorLoc = glGetUniformLocation(lightingShader.Program, "objectColor");
@@ -234,18 +249,18 @@ void drawObject(Shader lightingShader) {
 	glUniform3f(viewPosLoc, cameraPos[0], cameraPos[1], cameraPos[2]);
 
 	for (int j = 0; j < 5; j++) {
-		glUniform1f(kaLoc, materials[j].ka.x);
-		glUniform1f(kdLoc, materials[j].kd.x);
-		glUniform1f(ksLoc, materials[j].ks.x);
+		glUniform1f(kaLoc, object.materials[j].ka.x);
+		glUniform1f(kdLoc, object.materials[j].kd.x);
+		glUniform1f(ksLoc, object.materials[j].ks.x);
 	}
 
 	// Create camera transformations
 	glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 	glm::mat4 projection = glm::perspective(45.0f, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.1f, 100.0f);
 	glm::mat4 model;
-	model = glm::translate(model, objectPositions);
-	model = glm::rotate(model, glm::radians(objectRotate), glm::vec3(1.0f, 1.0f, 1.0f));
-	model = glm::scale(model, glm::vec3(escaleObject));
+	model = glm::translate(model, object.position);
+	model = glm::rotate(model, glm::radians(object.rotate), glm::vec3(1.0f, 1.0f, 1.0f));
+	model = glm::scale(model, glm::vec3(object.escale));
 
 	// Get the uniform locations
 	GLint modelLoc = glGetUniformLocation(lightingShader.Program, "model");
@@ -258,7 +273,7 @@ void drawObject(Shader lightingShader) {
 	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
 	//glBindTexture(GL_TEXTURE_2D, texture);
-	glUniform1i(glGetUniformLocation(lightingShader.Program, "ourTexture"), 0);
+	// glUniform1i(glGetUniformLocation(lightingShader.Program, "ourTexture"), 0);
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
@@ -280,21 +295,21 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 	//Handle object movimentation
 	if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
-		objectPositions -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+		objects[0].position -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
-		objectPositions += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+		objects[0].position += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
-		objectPositions += cameraSpeed * cameraFront;
+		objects[0].position += cameraSpeed * cameraFront;
 	if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
-		objectPositions -= cameraSpeed * cameraFront;
+		objects[0].position -= cameraSpeed * cameraFront;
 
 	if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
-		 objectRotate += 1.0f;
+		objects[0].position += 1.0f;
 
 	if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
-		escaleObject += 0.1f;
+		objects[0].position += 0.1f;
 	if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
-		escaleObject -= 0.1f;
+		objects[0].position -= 0.1f;
 
 }
 
@@ -332,11 +347,11 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	cameraFront = glm::normalize(front);
 }
 
-bool loadOBJ(const char * path, std::vector<glm::vec3>& out_vertices, std::vector<glm::vec3>& out_uvs, std::vector<glm::vec3>& out_normals)
+bool loadOBJ(const char * path, std::vector<glm::vec3>& out_vertices, std::vector<glm::vec2>& out_uvs, std::vector<glm::vec3>& out_normals)
 {
 	std::vector< unsigned int > vertexIndices, uvIndices, normalIndices;
 	std::vector< glm::vec3 > temp_vertices;
-	std::vector< glm::vec3 > temp_uvs;
+	std::vector< glm::vec2 > temp_uvs;
 	std::vector< glm::vec3 > temp_normals;
 
 	//opening file
@@ -398,7 +413,7 @@ bool loadOBJ(const char * path, std::vector<glm::vec3>& out_vertices, std::vecto
 
 	for (unsigned int i = 0; i < uvIndices.size(); i++) {
 		unsigned int uvIndex = uvIndices[i];
-		glm::vec3 uv = temp_uvs[uvIndex - 1];
+		glm::vec2 uv = temp_uvs[uvIndex - 1];
 		out_uvs.push_back(uv);
 	}
 
@@ -409,7 +424,7 @@ bool loadOBJ(const char * path, std::vector<glm::vec3>& out_vertices, std::vecto
 	}
 }
 
-void loadMaterials(const char * path) {
+void loadMaterials(const char * path, Obj *object) {
 	//opening file
 	FILE * file = fopen(path, "r");
 	int matIndex = 0;
@@ -426,22 +441,22 @@ void loadMaterials(const char * path) {
 		if (strcmp(lineHeader, "Ka") == 0) {
 			glm::vec3 ka;
 			fscanf(file, "%f %f %f\n", &ka.x, &ka.y, &ka.z);
-			materials[matIndex].ka = ka;
+			object->materials[matIndex].ka = ka;
 		}
 		else if (strcmp(lineHeader, "Kd") == 0) { //read the kd
 			glm::vec3 kd;
 			fscanf(file, "%f %f %f\n", &kd.x, &kd.y, &kd.z);
-			materials[matIndex].kd = kd;
+			object->materials[matIndex].kd = kd;
 		}
 		else if (strcmp(lineHeader, "Ks") == 0) { //read the ks
 			glm::vec3 ks;
 			fscanf(file, "%f %f %f\n", &ks.x, &ks.y, &ks.z);
-			materials[matIndex].ks = ks;
+			object->materials[matIndex].ks = ks;
 		}
 		else if (strcmp(lineHeader, "map_Kd") == 0) { //read the map 
 			char map[128];
 			fscanf(file, "%s", &map);
-			materials[matIndex].map = map;
+			object->materials[matIndex].map = map;
 			matIndex++;
 		}
 	}
@@ -463,22 +478,23 @@ void readConfigFile(const char * path) {
 		if (strcmp(lineHeader, "filename") == 0) {
 			char map[128];
 			fscanf(file, "%s", &map);
-			objPath = map;
+			objects[numberOfObjs].path = map;
 		}
 		else if (strcmp(lineHeader, "positionx") == 0) {
-			fscanf(file, "%f", &objectPositions.x);
+			fscanf(file, "%f", &objects[numberOfObjs].position.x);
 		}
 		else if (strcmp(lineHeader, "positiony") == 0) {
-			fscanf(file, "%f", &objectPositions.y);
+			fscanf(file, "%f", &objects[numberOfObjs].position.y);
 		}
 		else if (strcmp(lineHeader, "positionz") == 0) {
-			fscanf(file, "%f", &objectPositions.z);
+			fscanf(file, "%f", &objects[numberOfObjs].position.z);
 		}
 		else if (strcmp(lineHeader, "rotation") == 0) {
-			fscanf(file, "%f", &objectRotate);
+			fscanf(file, "%f", &objects[numberOfObjs].rotate);
 		}
 		else if (strcmp(lineHeader, "escale") == 0) {
-			fscanf(file, "%f", &escaleObject);
+			fscanf(file, "%f", &objects[numberOfObjs].escale);
+			numberOfObjs++;
 		}
 		else if (strcmp(lineHeader, "lightcolorx") == 0) {
 			fscanf(file, "%f", &lightColor.x);
